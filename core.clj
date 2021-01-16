@@ -1,5 +1,6 @@
 (ns core.fsm
-  (:require [clojure.string :as string]))
+  (:require [clojure.string :as string]
+            [clojure.spec.alpha :as s]))
 
 ;; To dump to mermaid syntax
 ;; 
@@ -24,10 +25,15 @@
 (defn rule-for-state
   "find the configured rule for a state"
   [fsm s]
-  (nth (filter (fn [r] (= s (r :when))) fsm)0))
+  (let [rule? (filter (fn [r] (= s (r :when))) fsm)]
+    (if (= 1 (count rule?))
+      (nth rule? 0)
+      (throw (ex-info (str "no (or multiple) rules for state " s)
+                      {:desired-state s}))
+      )))
 
 (defn add-runner
-  "adds a dummy runner if runner not already present"
+  "adds a dummy unit runner if runner not already present"
   [tr]
   (if (contains? tr :run) tr (assoc tr :run (fn [map] map))))
 
@@ -44,10 +50,15 @@
 (defn find-transition
   "find the transition for a trigger"
   [r t map]
-  (nth
-   (filter
-    (fn [tr] (transition-matches tr t map) )
-    (r :transitions)) 0))
+  (let [ transition? (filter
+                      (fn [tr] (transition-matches tr t map))
+                      (r :transitions))]
+    (if (= 1 (count transition?))
+      (nth transition? 0)
+      (throw
+       (ex-info
+        (str "no matching transition in rule " (r :when) " for trigger " t)
+        {:rule (r :when) :trigger t})))))
 
 (defn trigger
   "advance the map to the next state"
@@ -59,34 +70,50 @@
 
 (def fsm-example [{:when :open
            :transitions [{:permit :start
-                          :run (fn [m] (assoc m "surname" "baker"))
+                          :run (fn [m] (assoc m :surname "baker"))
                           :then :busy}
                          {:permit :close
-                          :if (fn [m] (not (= "chris" (m "name"))))
+                          :if (fn [m] (not (= "chris" (m :name))))
                           :then :open}
                          {:permit :close
-                          :if (fn [m] (= "chris" (m "name")))
+                          :if (fn [m] (= "chris" (m :name)))
                           :then :closed}]}
           {:when :busy
            :transitions [{:permit :close
                           :run (fn [m] (assoc m :outcome :success))
                           :then :closed}]}])
 
-;; execute the :start trigger on the map. The current state of the map is :open
+;; test execute the :start trigger on the map. The current state of the map is :open
 ;; therefore the new state will change to :busy and the resulting map
 ;; will have a new key added becuase of the :run method
-(trigger fsm-example
+(s/def ::state (s/and keyword? #(= :busy %)))
+(s/def ::name (s/and string? #(= "chris" %)))
+(s/def ::expected (s/keys :req-un [::state  ::name ::surname]))
+
+(s/explain ::expected
+   (trigger fsm-example
          :start
-         {:state :open "name" "chris"})
+         {:state :open :name "chris"}))
 
-;; execute the :close trigger on the map. The current state of the map is :open
+;; test execute the :close trigger on the map. The current state of the map is :open
 ;; therefore the new state will be :closed becuase the name is chris
-(trigger fsm-example
-         :close
-         {:state :open "name" "chris"})
+(s/def ::state (s/and keyword? #(= :closed %)))
+(s/def ::name (s/and string? #(= "chris" %)))
+(s/def ::expected (s/keys :req-un [::state  ::name]))
 
-;; execute the :close trigger on the map. The current state of the map is :open
+(s/explain ::expected
+   (trigger fsm-example
+            :close
+            {:state :open :name "chris"}))
+
+
+;; test execute the :close trigger on the map. The current state of the map is :open
 ;; therefore the new state will remain :open becuase the name is not chris
-(trigger fsm-example
-         :close
-         {:state :open "name" "emma"})
+(s/def ::state (s/and keyword? #(= :open %)))
+(s/def ::name (s/and string? #(= "emma" %)))
+(s/def ::expected (s/keys :req-un [::state  ::name]))
+
+(s/explain ::expected
+ (trigger fsm-example
+          :close
+          {:state :open :name "emma"}))
