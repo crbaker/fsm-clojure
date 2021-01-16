@@ -1,0 +1,23 @@
+{:paths ["src" "resources"]
+ :deps  {org.clojure/data.json          {:mvn/version "1.0.0"}
+         org.clojure/clojure            {:mvn/version "1.10.1"}
+         org.clojure/tools.cli          {:mvn/version "1.0.194"}}
+
+ :mvn/repos {"clojars"       {:url "https://clojars.org/repo"}
+             "central"       {:url "https://repo1.maven.org/maven2"}}
+ :aliases
+ {;; clojure linter - see https://github.com/jonase/eastwood
+  ;; clj -Alint
+  :lint {:extra-deps {jonase/eastwood {:mvn/version "RELEASE"}}
+         :main-opts  ["-m" "eastwood.lint" "{:source-paths,[\"src\"],:test-paths,[\"test\"]}"]}
+
+  :nREPL {:extra-deps {nrepl/nrepl {:mvn/version "0.6.0"}}}
+  ; clj -R:nREPL -m nrepl.cmdline
+
+  ;; better REPL - see https://github.com/bhauman/rebel-readline
+  ;; clj -A:rebel
+  :rebel {:extra-deps {com.bhauman/rebel-readline {:mvn/version "0.1.4"}}
+          :main-opts  ["-m" "rebel-readline.main"]}
+
+  :outdated {:extra-deps {olical/depot {:mvn/version "1.8.4"}}
+             :main-opts  ["-m" "depot.outdated.main" "-a" "outdated"]}}}
