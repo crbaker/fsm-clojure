@@ -35,8 +35,6 @@
         (clojure.string/join "\n" (flatten (map dump-rule fsm)))
         "\n" "```"))
 
-;; (println (dump fsm))
-
 (defn rule-for-state
   "find the configured rule for a state"
   [fsm s]
