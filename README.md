@@ -3,26 +3,45 @@
 Usage:
 
 ```clojure
-(def fsm [{:when :open
-          :transitions [{:permit :start
-                         :run (fn [m] (assoc m "some" "property"))
-                         :then :busy}
-                        {:permit :close
-                         :if (fn [m] (not (= "chris" (m "name"))))
-                         :then :open}
-                        {:permit :close
-                         :if (fn [m] (= "chris" (m "name")))
-                         :then :closed}]}
+(def fsm-example [{:when :open
+           :transitions [{:permit :start
+                          :run (fn [m] (assoc m "surname" "baker"))
+                          :then :busy}
+                         {:permit :close
+                          :if (fn [m] (not (= "chris" (m "name"))))
+                          :then :open}
+                         {:permit :close
+                          :if (fn [m] (= "chris" (m "name")))
+                          :then :closed}]}
           {:when :busy
            :transitions [{:permit :close
                           :run (fn [m] (assoc m :outcome :success))
                           :then :closed}]}])
+
+;; execute the :start trigger on the map. The current state of the map is :open
+;; therefore the new state will change to :busy and the resulting map
+;; will have a new key added becuase of the :run method
+(trigger fsm-example
+         :start
+         {:state :open "name" "chris"})
+
+;; execute the :close trigger on the map. The current state of the map is :open
+;; therefore the new state will be :closed becuase the name is chris
+(trigger fsm-example
+         :close
+         {:state :open "name" "chris"})
+
+;; execute the :close trigger on the map. The current state of the map is :open
+;; therefore the new state will remain :open becuase the name is not chris
+(trigger fsm-example
+         :close
+         {:state :open "name" "emma"})
 ```
 
 The Finite State Machine is defined in a map. To transition from one state to another there should be a rule with n (n>0) number of transitions:
 
-The `:run` keyword referes to a function that is executed just before the new state is applied
-The `:if` keywords refers to a predicate that determines if that transition is applicable.
+The `:run` keyword referes to an optional function that is executed just before the new state is applied. It will accept the map and should return the same or updated map
+The `:if` keywords refers to an optional predicate that determines if that transition is applicable to the current state of the map.
 
 There can only be one valid transition, 0 or > 1 will result in an exception
 

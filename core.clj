@@ -1,23 +1,8 @@
 (ns core.fsm
   (:require [clojure.string :as string]))
 
-(def fsm [{:when :open
-          :transitions [{:permit :start
-                        ;;  :run method accepts the map and must return the same or updated map
-                         :run (fn [m] (assoc m "surname" "baker"))
-                         :then :busy}
-                        {:permit :close
-                         :if (fn [m] (not (= "chris" (m "name"))))
-                         :then :open}
-                        {:permit :close
-                        ;;  :if method accepts the map and must return boolean
-                         :if (fn [m] (= "chris" (m "name")))
-                         :then :closed}]}
-          {:when :busy
-           :transitions [{:permit :close
-                          :run (fn [m] (assoc m :outcome :success))
-                          :then :closed}]}])
-
+;; To dump to mermaid syntax
+;; 
 (defn sanitise [kw converter]
   (converter (name kw)))
 
@@ -35,6 +20,7 @@
         (clojure.string/join "\n" (flatten (map dump-rule fsm)))
         "\n" "```"))
 
+;; FSM
 (defn rule-for-state
   "find the configured rule for a state"
   [fsm s]
@@ -71,6 +57,36 @@
     (assoc (((add-runner transition) :run) map)
            :state (transition :then))))
 
-(trigger fsm
+(def fsm-example [{:when :open
+           :transitions [{:permit :start
+                          :run (fn [m] (assoc m "surname" "baker"))
+                          :then :busy}
+                         {:permit :close
+                          :if (fn [m] (not (= "chris" (m "name"))))
+                          :then :open}
+                         {:permit :close
+                          :if (fn [m] (= "chris" (m "name")))
+                          :then :closed}]}
+          {:when :busy
+           :transitions [{:permit :close
+                          :run (fn [m] (assoc m :outcome :success))
+                          :then :closed}]}])
+
+;; execute the :start trigger on the map. The current state of the map is :open
+;; therefore the new state will change to :busy and the resulting map
+;; will have a new key added becuase of the :run method
+(trigger fsm-example
+         :start
+         {:state :open "name" "chris"})
+
+;; execute the :close trigger on the map. The current state of the map is :open
+;; therefore the new state will be :closed becuase the name is chris
+(trigger fsm-example
          :close
-         {:state :busy "name" "chris"})
+         {:state :open "name" "chris"})
+
+;; execute the :close trigger on the map. The current state of the map is :open
+;; therefore the new state will remain :open becuase the name is not chris
+(trigger fsm-example
+         :close
+         {:state :open "name" "emma"})
