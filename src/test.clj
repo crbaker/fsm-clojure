@@ -1,5 +1,5 @@
 (require '[clojure.spec.alpha :as s]
-          '[fsm.core :as fsm])
+         '[fsm.core :as fsm])
 
 (def fsm-example {:rules [{:when :open
                            :transitions [{:permit :start
@@ -25,8 +25,8 @@
 
 (s/explain ::expected
            (fsm/trigger fsm-example
-                    :start
-                    {:state :open :name "chris"}))
+                        :start
+                        {:state :open :name "chris"}))
 
 ;; test execute the :close trigger on the map. The current state of the map is :open
 ;; therefore the new state will be :closed becuase the name is chris
@@ -36,8 +36,8 @@
 
 (s/explain ::expected
            (fsm/trigger fsm-example
-                    :close
-                    {:state :open :name "chris"}))
+                        :close
+                        {:state :open :name "chris"}))
 
 ;; test execute the :close trigger on the map. The current state of the map is :open
 ;; therefore the new state will remain :open becuase the name is not chris
@@ -47,5 +47,18 @@
 
 (s/explain ::expected
            (fsm/trigger fsm-example
-                    :close
-                    {:state :open :name "emma"}))
+                        :close
+                        {:state :open :name "emma"}))
+
+;; test to show the available triggers that are permissable
+(s/def ::triggers (s/and (s/* keyword?)
+                         #(= [:start :close] %)))
+
+(s/explain ::triggers
+           (fsm/allowed-triggers fsm-example :open))
+
+(s/def ::triggers (s/and (s/* keyword?)
+                         #(= [:close] %)))
+
+(s/explain ::triggers
+           (fsm/allowed-triggers fsm-example :busy))

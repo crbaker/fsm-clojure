@@ -23,12 +23,17 @@
 ;; FSM
 (defn rule-for-state
   "find the configured rule for a state"
-  [fsm s]
-  (let [rule? (filter (fn [r] (= s (r :when))) fsm)]
+  [rules s]
+  (let [rule? (filter (fn [r] (= s (r :when))) rules)]
     (if (= 1 (count rule?))
       (nth rule? 0)
       (throw (ex-info (str "no (or multiple) rules for state " s)
                       {:desired-state s})))))
+
+(defn allowed-triggers
+  "gets the list of configured triggers that are permissable for the supplied state"
+  [fsm s]
+  (into [] (set (map (fn [t] (t :permit)) ((rule-for-state (fsm :rules) s) :transitions)))))
 
 (defn add-runner
   "adds a dummy unit runner if runner not already present"
