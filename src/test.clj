@@ -4,16 +4,25 @@
 (def fsm-example {:rules [{:when :open
                            :transitions [{:permit :start
                                           :run (fn [m] (assoc m :surname "baker"))
+                                          :if (fn [m] (= "chris" (m :name)))
+                                          :then :busy}
+                                         {:permit :start
+                                          :if (fn [m] (not (= "chris" (m :name))))
                                           :then :busy}
                                          {:permit :close
-                                          :if (fn [m] (not (= "chris" (m :name))))
-                                          :then :open}
-                                         {:permit :close
                                           :if (fn [m] (= "chris" (m :name)))
-                                          :then :closed}]}
+                                          :then :closed}
+                                         {:permit :close
+                                          :if (fn [m] (not (= "chris" (m :name))))
+                                          :then :open}]}
                           {:when :busy
                            :transitions [{:permit :close
                                           :run (fn [m] (assoc m :outcome :success))
+                                          :then :closed}
+
+                                         {:permit :close
+                                          :run (fn [m] (assoc m :outcome :success))
+                                          :if (fn [_] true)
                                           :then :closed}]}]})
 
 ;; test execute the :start trigger on the map. The current state of the map is :open
